@@ -1,31 +1,28 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+contract Exchanger is Ownable {
+  ERC20 token1;
+  ERC20 token2;
+  uint256 public token1PerToken2 = 100;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+  constructor(address token1Address, address token2Address, address initialOwner) Ownable(initialOwner) {
+    token1 = ERC20(token1Address);
+    token2 = ERC20(token2Address);
+  }
 
-contract TokenExchange {
-    IERC20 public abcToken;
-    IERC721 public nftContract;
+  function exchangeTokens(uint256 token1Amount) public {
+    require(token1Amount > 0, "You need to send some Token1 to proceed");
+    uint256 amountToExchange = token1Amount * token1PerToken2;
 
-    constructor(address _abcToken, address _nftContract) {
-        abcToken = IERC20(_abcToken);
-        nftContract = IERC721(_nftContract);
-    }
+    uint256 vendorBalance = token2.balanceOf(address(this));
+    require(vendorBalance >= amountToExchange, "Vendor has insufficient tokens");
 
-    function exchangeAbcToEther(uint256 abcAmount) public {
-        //TODO: Implement the logic to exchange ABCoin for Ether.
-    }
+    (bool sent) = token1.transferFrom(msg.sender, address(this), token1Amount);
+    require(sent, "Failed to transfer token1 from user");
 
-    function exchangeAbcToNft(uint256 abcAmount, uint256 tokenId) public {
-        //TODO: Implement the logic to exchange ABCoin for NFT.
-    }
-
-    function exchangeNftToEther(uint256 tokenId) public {
-        //TODO: Implement the logic to exchange NFT for Ether.
-    }
-
-    function exchangeNftToAbc(uint256 tokenId) public {
-        //TODO: Implement the logic to exchange NFT for ABCoin.
-    }
+    sent = token2.transfer(msg.sender, amountToExchange);
+    require(sent, "Failed to transfer token2 to user");
+  }
 }
