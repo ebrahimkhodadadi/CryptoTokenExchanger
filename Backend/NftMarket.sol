@@ -22,7 +22,24 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         bool sold;
     }
 
+    struct auctionStruct {
+        uint itemId;
+        uint256 tokenId;
+        address payable seller;
+        address payable owner;
+        uint256 finishTime;
+        mapping(uint256 => bidStruct) bids;
+        uint256 totalBids;
+        bool sold;
+    }
+
+    struct bidStruct {
+        address payable addressOfBidder;
+        uint256 bidPrice;
+    }
+
     mapping(uint256 => List) public listItems;
+    mapping(uint256 => auctionStruct) public auctionItems;
 
     event NftListCreated(
         uint indexed itemId,
@@ -30,6 +47,17 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         address seller,
         address owner,
         uint256 price,
+        bool sold
+    );
+
+    event NftAuctionCreated(
+        uint indexed itemId,
+        uint256 indexed tokenId,
+        address seller,
+        address owner,
+        uint256 highestPriceBid,
+        address addressHighestPriceBid,
+        uint256 finishTime,
         bool sold
     );
 
@@ -78,6 +106,95 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
             price,
             false
         );
+    }
+
+    //Auction
+    function createAuction(
+        uint256 tokenId,
+        uint256 auctionFinishTimeUnix
+    ) public payable nonReentrant {
+        require(
+            nft.ownerOf(tokenId) == msg.sender,
+            "you have not access to this nft"
+        );
+        require(
+            auctionItems[tokenId].tokenId == 0,
+            "this nft is already available in market"
+        );
+        require(msg.value == marketFee, "please transfer fee price");
+        require(
+            auctionFinishTimeUnix > block.timestamp,
+            "auction finish time should be higher than current unix time"
+        );
+        ItemIdCountable++;
+        auctionStruct storage newItem = auctionItems[ItemIdCountable];
+        newItem.itemId = ItemIdCountable;
+        newItem.tokenId = tokenId;
+        newItem.seller = payable(msg.sender);
+        newItem.owner = payable(address(this));
+        newItem.finishTime = auctionFinishTimeUnix;
+        newItem.sold = false;
+        newItem.totalBids = 0;
+        nft.transferFrom(msg.sender, address(this), tokenId);
+        emit NftAuctionCreated(
+            ItemIdCountable,
+            tokenId,
+            msg.sender,
+            address(this),
+            0,
+            address(this),
+            auctionFinishTimeUnix,
+            false
+        );
+    }
+
+    function bidOnItem(uint256 _itemId) public payable nonReentrant {
+        auctionStruct storage selectedItem = auctionItems[_itemId]; //gets id of the item and stores it
+        require(
+            selectedItem.finishTime > block.timestamp,
+            "sorry...The auction is over"
+        );
+        require(msg.value > 0, "bid should be higher than 0");
+        selectedItem.totalBids++;
+        bidStruct memory _bid = selectedItem.bids[selectedItem.totalBids];
+        _bid.addressOfBidder = payable(msg.sender);
+        _bid.bidPrice = msg.value;
+    }
+
+    function calculateAuctionResult(
+        uint256 _itemId
+    ) public payable nonReentrant {
+        auctionStruct storage selectedItem = auctionItems[_itemId];
+        require(
+            selectedItem.finishTime < block.timestamp,
+            "auction time is not ended"
+        );
+        uint256 _totalBids = selectedItem.totalBids;
+        uint256 maxBid = 0;
+        address payable maxBidderAddress;
+        require(_totalBids > 0, "no bids");
+        for (uint256 i = 1; i <= _totalBids; i++) {
+            bidStruct memory _bid = selectedItem.bids[i];
+            if (_bid.bidPrice > maxBid) {
+                maxBid = _bid.bidPrice;
+                maxBidderAddress = _bid.addressOfBidder;
+            }
+        }
+        selectedItem.seller.transfer(maxBid);
+        owner.transfer(marketFee);
+        nft.transferFrom(address(this), maxBidderAddress, selectedItem.tokenId);
+        //give back eth to not success acounts
+        if (_totalBids > 1) {
+            for (uint256 i = 1; i <= _totalBids; i++) {
+                bidStruct memory _bid = selectedItem.bids[i];
+                if (_bid.addressOfBidder != maxBidderAddress) {
+                    _bid.addressOfBidder.transfer(_bid.bidPrice);
+                }
+            }
+        }
+        selectedItem.sold = true;
+        itemSoldCountable++;
+        delete auctionItems[_itemId];
     }
 
     //in this function, a person can buy an NFT with Ethereum
