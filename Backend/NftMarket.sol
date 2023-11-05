@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 //import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -11,7 +12,11 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
     address payable owner;
     uint256 marketFee; //The market receives a fee for selling nfts
     uint256 ItemIdCountable = 0;
+    uint256 ItemIdCountableAbCoin = 0;
+    uint256 ItemIdCountableAuction = 0;
     uint256 itemSoldCountable = 0; //how many items sold in this market
+    ERC20 token;
+    ERC721Enumerable nft;
 
     struct List {
         uint itemId;
@@ -39,6 +44,7 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
     }
 
     mapping(uint256 => List) public listItems;
+    mapping(uint256 => List) public listItemsAbcoin;
     mapping(uint256 => auctionStruct) public auctionItems;
 
     event NftListCreated(
@@ -65,19 +71,19 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         return marketFee;
     }
 
-    ERC721Enumerable nft;
-
-    constructor(ERC721Enumerable _nft, uint256 _marketFee) {
+    constructor(ERC721Enumerable _nft, ERC20 _token, uint256 _marketFee) {
         owner = payable(msg.sender);
         nft = _nft;
         marketFee = _marketFee;
+        token = _token;
     }
 
     //in this fuction we add our nft to marketplace and if it sold out, eth will transfer to seller and nft will transfer to buyer
-    function sellNft(
+    function sellNftWithEth(
         uint256 tokenId,
         uint256 price
     ) public payable nonReentrant {
+        //mode==0 sell nft with eth  mode==1 sell nft with abcoin
         require(
             nft.ownerOf(tokenId) == msg.sender,
             "you have not access to this nft"
@@ -91,6 +97,41 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         ItemIdCountable++;
         listItems[ItemIdCountable] = List(
             ItemIdCountable,
+            tokenId,
+            payable(msg.sender),
+            payable(address(this)),
+            price,
+            false
+        );
+        nft.transferFrom(msg.sender, address(this), tokenId); //the seller sends his nft to the contract to be sold*****(owner of nft should approve this contract address to sell his nft!you can do this in nft contract with approveall function)*****
+        emit NftListCreated(
+            ItemIdCountable,
+            tokenId,
+            msg.sender,
+            address(this),
+            price,
+            false
+        );
+    }
+
+    function sellNftWithAbCoin(
+        uint256 tokenId,
+        uint256 price
+    ) public payable nonReentrant {
+        //mode==0 sell nft with eth  mode==1 sell nft with abcoin
+        require(
+            nft.ownerOf(tokenId) == msg.sender,
+            "you have not access to this nft"
+        );
+        require(
+            listItemsAbcoin[tokenId].tokenId == 0,
+            "this nft is already available in market"
+        );
+        require(price > 0, "price should be higher than 0");
+        require(msg.value == marketFee, "please transfer fee price");
+        ItemIdCountableAbCoin++;
+        listItemsAbcoin[ItemIdCountableAbCoin] = List(
+            ItemIdCountableAbCoin,
             tokenId,
             payable(msg.sender),
             payable(address(this)),
@@ -207,6 +248,21 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         listItems[_itemId].sold = true;
         itemSoldCountable++;
         delete listItems[_itemId];
+    }
+
+    //in this function, a person can buy an NFT with ABCOIN
+    function buyNftWithAbCoin(uint256 _itemId) public payable nonReentrant {
+        List memory selectedItem = listItemsAbcoin[_itemId]; //gets id of the item and stores it
+        require(
+            token.balanceOf(msg.sender) >= selectedItem.price,
+            "insufficient token!"
+        );
+        token.transferFrom(msg.sender, selectedItem.seller, selectedItem.price);
+        owner.transfer(marketFee); //transfer market fee to owner of contract
+        nft.transferFrom(address(this), msg.sender, selectedItem.tokenId); //transfer nft from contract to buyer
+        listItemsAbcoin[_itemId].sold = true;
+        itemSoldCountable++;
+        delete listItemsAbcoin[_itemId];
     }
 
     //in this function, we get the list of store nfts
