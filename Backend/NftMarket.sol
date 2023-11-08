@@ -25,6 +25,7 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         address payable owner;
         uint256 price;
         bool sold;
+        string image;
     }
 
     struct auctionStruct {
@@ -36,6 +37,7 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         mapping(uint256 => bidStruct) bids;
         uint256 totalBids;
         bool sold;
+        string image;
     }
 
     struct bidStruct {
@@ -95,13 +97,15 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         require(price > 0, "price should be higher than 0");
         require(msg.value == marketFee, "please transfer fee price");
         ItemIdCountable++;
+        string memory _image = nft.tokenURI(tokenId);
         listItems[ItemIdCountable] = List(
             ItemIdCountable,
             tokenId,
             payable(msg.sender),
             payable(address(this)),
             price,
-            false
+            false,
+            _image
         );
         nft.transferFrom(msg.sender, address(this), tokenId); //the seller sends his nft to the contract to be sold*****(owner of nft should approve this contract address to sell his nft!you can do this in nft contract with approveall function)*****
         emit NftListCreated(
@@ -130,13 +134,15 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         require(price > 0, "price should be higher than 0");
         require(msg.value == marketFee, "please transfer fee price");
         ItemIdCountableAbCoin++;
+        string memory _image = nft.tokenURI(tokenId);
         listItemsAbcoin[ItemIdCountableAbCoin] = List(
             ItemIdCountableAbCoin,
             tokenId,
             payable(msg.sender),
             payable(address(this)),
             price,
-            false
+            false,
+            _image
         );
         nft.transferFrom(msg.sender, address(this), tokenId); //the seller sends his nft to the contract to be sold*****(owner of nft should approve this contract address to sell his nft!you can do this in nft contract with approveall function)*****
         emit NftListCreated(
@@ -176,6 +182,7 @@ contract NftMarket is IERC721Receiver, ReentrancyGuard {
         newItem.finishTime = auctionFinishTimeUnix;
         newItem.sold = false;
         newItem.totalBids = 0;
+        newItem.image = nft.tokenURI(tokenId);
         nft.transferFrom(msg.sender, address(this), tokenId);
         emit NftAuctionCreated(
             ItemIdCountable,

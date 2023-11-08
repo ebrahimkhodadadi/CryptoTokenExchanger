@@ -94,3 +94,6 @@ after merge completed we push the code
 
 `git push origin dev`
 
+
+deleting
+'git push origin --delete fix/authentication'

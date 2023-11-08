@@ -20,3 +20,103 @@
 .mint-nft-button {
   background: orange;
 }
+
+.container {
+  display: flex;
+  flex-direction: row;
+
+}
+
+.block-plan {
+  display: grid;
+  gap: 20px 20px;
+  justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 300px));
+  margin-top: 5rem;
+  margin-right: 20px;
+}
+
+.plan {
+  /* max size card ha dar mobile */
+  /* max-width: 450px; */
+  font-size: 1.8rem;
+  transition: all 0.2s ease-out;
+}
+
+.card {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 20px 10px #efefef;
+}
+
+.card__body,
+.card__header {
+  padding: 3rem 2.5rem;
+}
+
+.card__header {
+  background-color: rgb(202, 78, 78);
+  color: white;
+}
+
+.card--primary .card__header {
+  background-color: red;
+}
+
+.card__header .paln__name {
+  display: flex;
+}
+
+.plan__introduction {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.plan__price {
+  font-size: 3rem;
+}
+
+.plan__billing-cycle {
+  font-size: 1.4rem;
+}
+
+.plan__description {
+  display: block;
+  margin-top: 1rem;
+}
+
+.plan .btn--block {
+  font-size: 1.6rem;
+  margin-top: 10rem;
+}
+
+.plan--popular {
+  transform: scale(1.1)
+}
+
+.plan:hover {
+  transform: scale(1.05);
+}
+
+
+/* desktop */
+
+@media screen and (min-width:1000px) {
+
+  /* .block-plan {
+      grid-template-columns: repeat(3, 1fr);
+  } */
+  .plan .btn--block {
+    margin-top: 14rem;
+    font-size: 1.8rem;
+  }
+}
+
+
+/* container */
+
+.container {
+  max-width: 1140px;
+  margin: 4rem auto;
+}
