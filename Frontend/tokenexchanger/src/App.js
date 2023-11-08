@@ -14,7 +14,12 @@ function App() {
   const [currentAccount, setCurrentAccount] = useState(null);
   const [signer, setSigner] = useState();
   const [nftMarketContract, setNftMarketContract] = useState();
+  const [marketFee, setMarketFee] = useState();
   const [nftItems, setNftItems] = useState([]);
+  const [nftItemsAB, setNftItemsAB] = useState([]);
+  const [userInputTokenID, setUserInputTokenID] = useState();
+  const [userInputPrice, setUserInputPrice] = useState();
+
 
   useEffect(() => {
     //checkWalletIsConnected();
@@ -113,6 +118,8 @@ function App() {
     }
   }
 
+
+
   const connectWalletButton = () => {
     return (
       <button onClick={connectWallet} className='cta-button connect-wallet-button'>
@@ -156,46 +163,104 @@ function App() {
       if (!contractAddress) throw new Error("Contract address is not provided");
       const contractFcWithSigner = nftMarketContract.connect(signer);
       const nftItems = await contractFcWithSigner.getNftItems();
+      const nftItemAB = await contractFcWithSigner.getNftItemsAB();
+      const _fee = await contractFcWithSigner.getMarketFee().toString();
       setNftItems(nftItems);
-      console.log(nftItems);
+      setMarketFee(_fee);
+      setNftItemsAB(nftItemAB);
+      console.log(_fee.toString());
     } catch (err) {
       console.log(err);
     }
   }
 
+  const buyItemEth = async (_id, _value) => {
+    try {
+      if (!signer) throw new Error("Signer is not set");
+      if (!contractAddress) throw new Error("Contract address is not provided");
+      const contractFcWithSigner = nftMarketContract.connect(signer);
+      let nftTxn = await contractFcWithSigner.buyNftWithEth(_id, { value: _value });
+      console.log("please wait");
+      await nftTxn.wait();
+      console.log("completed")
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  const buyItemAB = async (_id
+  ) => {
+    try {
+      if (!signer) throw new Error("Signer is not set");
+      if (!contractAddress) throw new Error("Contract address is not provided");
+      const contractFcWithSigner = nftMarketContract.connect(signer);
+      let nftTxn = await contractFcWithSigner.buyNftWithAbCoin(_id
+      );
+      console.log("please wait");
+      await nftTxn.wait();
+      console.log("completed")
+    } catch (err) {
+      console.log("msd")
+      console.log(err);
+    }
+  }
+
+
+  const handleInputChangeTokenID = (event) => {
+    setUserInputTokenID(event.target.value);
+  };
+  const handleInputChangePrice = (event) => {
+    setUserInputPrice(event.target.value);
+  };
+
+  const sellNftEth = async (_tokenId, _price) => {
+    try {
+      if (!signer) throw new Error("Signer is not set");
+      if (!contractAddress) throw new Error("Contract address is not provided");
+      const contractFcWithSigner = nftMarketContract.connect(signer);
+      let nftTxn = await contractFcWithSigner.sellNftWithEth(_tokenId, _price, { value: 100000 });
+      console.log("please wait");
+      await nftTxn.wait();
+      console.log("completed")
+    } catch (err) {
+      console.log("emm")
+      console.log(err);
+    }
+  }
+
+
   const recyclerNft = () => {
     if (nftItems && nftItems.length > 0) {
       return (
         <div>
-          <section class="container block">
-
-            {
-              nftItems.map((item) => {
-                return (
-
-                  <div class="block-plan">
-                    <div class="plan">
-                      <div class="card card--secondary">
-                        <div class="card__header">
-                          <span class="plan__introduction">
-                            <span class="item__name">#ITEM ID: {item.itemId.toString()}</span>
-                            <span class="token__name">#TOKEN ID: {item.tokenId.toString()}</span>
-                          </span>
-                          <img src={item.image} style={{ width: '100px', height: '100px' }}></img>
-                          <span class="plan__description">PRICE: {item.price.toString()} WEI</span>
-                          <button >
-                            BUY
-                          </button>
-                        </div>
-
+          <section className="container block">
+            {nftItems
+              .filter(item => item.seller !== "0x0000000000000000000000000000000000000000")
+              .map((item) => (
+                <div className="block-plan" key={item.itemId}>
+                  <div className="plan">
+                    <div className="card card--secondary">
+                      <div className="card__header">
+                        <span className="plan__introduction">
+                          <span className="item__name">#ITEM ID: {item.itemId.toString()}</span>
+                          <span className="token__name">#TOKEN ID: {item.tokenId.toString()}</span>
+                        </span>
+                        <img
+                          src={item.seller === "0x0000000000000000000000000000000000000000"
+                            ? "https://i0.wp.com/thestate270.org/wp-content/uploads/2019/10/sold-out.png"
+                            : item.image}
+                          style={{ width: '100px', height: '100px' }}
+                          alt="NFT"
+                        />
+                        <span className="plan__description">PRICE: {item.price.toString()} WEI</span>
+                        <button onClick={() => buyItemEth(item.itemId.toString(), item.price.toString())}>
+                          BUY
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                )
-
-              })
-            }
+                </div>
+              ))}
           </section>
         </div>
       )
@@ -204,8 +269,45 @@ function App() {
     }
   }
 
-
-
+  const recyclerNftAb = () => {
+    if (nftItemsAB && nftItemsAB.length > 0) {
+      return (
+        <div>
+          <section className="container block">
+            {nftItemsAB
+              .filter(item => item.seller !== "0x0000000000000000000000000000000000000000")
+              .map((item) => (
+                <div className="block-plan" key={item.itemId}>
+                  <div className="plan">
+                    <div className="card card--secondary">
+                      <div className="card__header">
+                        <span className="plan__introduction">
+                          <span className="item__name">#ITEM ID: {item.itemId.toString()}</span>
+                          <span className="token__name">#TOKEN ID: {item.tokenId.toString()}</span>
+                        </span>
+                        <img
+                          src={item.seller === "0x0000000000000000000000000000000000000000"
+                            ? "https://i0.wp.com/thestate270.org/wp-content/uploads/2019/10/sold-out.png"
+                            : item.image}
+                          style={{ width: '100px', height: '100px' }}
+                          alt="NFT"
+                        />
+                        <span className="plan__description">PRICE: {item.price.toString()} ABC</span>
+                        <button onClick={() => buyItemAB(item.itemId.toString())}>
+                          BUY
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </section>
+        </div>
+      )
+    } else {
+      console.log("data not loaded");
+    }
+  }
 
   return (
     <div className='main-app'>
@@ -219,6 +321,29 @@ function App() {
         {currentAccount ? mintNftButton() : connectWalletButton()}
       </div>
 
+      <div>
+        <h1 className="is-link has-text-weight-bold">################### SELL NFT WITH ETH ###################</h1>
+        <h1 >ENTER TOKEN ID HERE:</h1>
+        <input
+          type="number"
+          value={userInputTokenID}
+          onChange={handleInputChangeTokenID}
+        />
+
+
+        <h1 >ENTER PRICE HERE:</h1>
+        <input
+          type="number"
+          value={userInputPrice}
+          onChange={handleInputChangePrice}
+        />
+
+        <button onClick={() => sellNftEth(userInputTokenID, userInputPrice)} className='mint-nft-button '>
+          SELL NFT
+        </button>
+        <h1 className="is-link has-text-weight-bold">#######################################################</h1>
+      </div>
+
       <button className="load-nfts" onClick={getContractPublicObjects}>
         <span className="is-link has-text-weight-bold">
           {currentAccount && currentAccount.length > 0 ? `LOAD DATAS` :
@@ -226,7 +351,8 @@ function App() {
         </span>
       </button>
       <div>
-        {signer && currentAccount && nftMarketContract ? recyclerNft() : "Please connect to MetaMask and load data."}
+        {signer && currentAccount && nftMarketContract ? recyclerNft() : ""}
+        {signer && currentAccount && nftMarketContract ? recyclerNftAb() : ""}
       </div>
 
     </div>

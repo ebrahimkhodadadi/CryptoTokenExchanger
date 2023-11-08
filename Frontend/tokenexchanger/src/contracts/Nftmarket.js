@@ -309,6 +309,56 @@ const marketAbi = [
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "getNftItemsAB",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "itemId",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "tokenId",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address payable",
+                        "name": "seller",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address payable",
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "price",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "sold",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "image",
+                        "type": "string"
+                    }
+                ],
+                "internalType": "struct NftMarket.List[]",
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "uint256",
@@ -477,9 +527,8 @@ const marketAbi = [
         "type": "function"
     }
 ]
-
 const marketContractInstance = (provider) => {
-    return new ethers.Contract("0x297262F44af3259c7205b2B2B4435BBCa0E71F6F",
+    return new ethers.Contract("0x00f4da93A83DAd35E2fF7d8A8b86B4A9B15483BC",
         marketAbi,
         provider);
 };
